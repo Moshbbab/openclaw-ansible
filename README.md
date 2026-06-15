@@ -83,6 +83,8 @@ This will:
 - Configure your messaging provider (WhatsApp/Telegram/Signal)
 - Install and start the daemon service
 
+After onboarding, run the [post-install security verification](docs/security.md#verification). The checks confirm that the firewall and SSH protection are active, Docker-published ports remain externally blocked, and OpenClaw only listens on localhost.
+
 ### Alternative Manual Setup
 
 ```bash
@@ -251,7 +253,7 @@ Enable with: `-e openclaw_install_mode=development`
 - **Scoped sudo**: Limited to service management (not full root)
 - **Systemd hardening**: NoNewPrivileges, PrivateTmp, ProtectSystem
 
-Verify: `nmap -p- YOUR_SERVER_IP` should show only port 22 open.
+Run the [post-install security verification](docs/security.md#verification) for commands and expected results. In the default configuration, an external TCP scan should show only SSH on port 22; Tailscale uses UDP and is not included in that TCP scan.
 
 ### Security Note
 

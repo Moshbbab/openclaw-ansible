@@ -144,43 +144,17 @@ ssh -L 3000:localhost:3000 user@server
 
 ## Verification
 
-### Security Check
+Run the complete [post-install security verification](security.md#verification). It includes every command, the expected healthy result, and notes about output that varies by host.
 
-```bash
-# Check open ports (should show only SSH + Tailscale)
-sudo ss -tlnp
+At minimum, confirm:
 
-# External port scan (only port 22 should be open)
-nmap -p- YOUR_SERVER_IP
-
-# Test container isolation
-sudo docker run -d -p 80:80 --name test-nginx nginx
-curl http://YOUR_SERVER_IP:80  # Should fail
-curl http://localhost:80        # Should work
-sudo docker rm -f test-nginx
-```
-
-### UFW Status
-
-```bash
-sudo ufw status verbose
-
-# Expected output:
-# Status: active
-# To                         Action      From
-# --                         ------      ----
-# 22/tcp                     ALLOW IN    Anywhere
-# 41641/udp                  ALLOW IN    Anywhere
-```
-
-### Tailscale Status
-
-```bash
-sudo tailscale status
-
-# Expected output:
-# 100.x.x.x    hostname    user@        linux   -
-```
+- UFW is active with incoming and routed traffic denied by default.
+- The `sshd` fail2ban jail is enabled.
+- OpenClaw listens on `127.0.0.1`, not `0.0.0.0`.
+- The `DOCKER-USER` chain drops externally routed container traffic.
+- An external TCP scan exposes only the configured SSH port.
+- A published test container works locally but cannot be reached externally.
+- Tailscale is connected when enabled, and unattended upgrades are active.
 
 ## Uninstall
 

@@ -1,5 +1,9 @@
 # Changelog - Multi-OS Support & Bug Fixes
 
+## Unreleased
+
+- Document expected results for post-install security verification and link the checks from setup documentation. Thanks @justinfiore for the report.
+
 ## [2.0.0] - 2025-01-09
 
 ### 🎉 Major Changes

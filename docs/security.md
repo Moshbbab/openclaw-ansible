@@ -110,31 +110,75 @@ cat /var/run/reboot-required 2>/dev/null || echo "No reboot required"
 
 ## Verification
 
+Run these checks after installation and onboarding. Interface names, IP addresses, packet counters, and process IDs vary by host; compare the stated healthy result rather than expecting byte-for-byte output.
+
+### Firewall
+
 ```bash
-# Check firewall
 sudo ufw status verbose
+```
 
-# Check fail2ban
+Expected: `Status: active`, with incoming and routed traffic denied by default. The default rules allow `22/tcp` for SSH and, when Tailscale is enabled, `41641/udp`; IPv6-enabled hosts may show matching `(v6)` entries.
+
+### SSH Protection
+
+```bash
 sudo fail2ban-client status
+sudo fail2ban-client status sshd
+```
 
-# Check Tailscale status
-sudo tailscale status
+Expected: the first command lists `sshd` under `Jail list`; the second reports the jail as active and shows its failure and ban counters. Zero failures or bans is healthy.
 
-# Check Docker isolation
+### Local Listeners
+
+```bash
+sudo ss -tlnp
+```
+
+Expected: SSH listens on the configured public address or `0.0.0.0`; OpenClaw and its supporting services listen on `127.0.0.1`. No OpenClaw or Docker service should listen on `0.0.0.0`.
+
+### Docker Isolation
+
+```bash
 sudo iptables -L DOCKER-USER -n -v
+```
 
-# Port scan from external machine (only SSH + Tailscale should be open)
+Expected: the chain includes accepts for established traffic and loopback traffic, followed by a drop rule for traffic arriving on the server's default external interface. Packet counters may be zero before traffic reaches the chain.
+
+From another machine, scan the server:
+
+```bash
 nmap -p- YOUR_SERVER_IP
+```
 
-# Test container isolation
+Expected: only the configured SSH TCP port is open in the default configuration. Tailscale uses UDP port `41641`, so it does not appear in this TCP scan.
+
+Then publish a temporary container port:
+
+```bash
 sudo docker run -d -p 80:80 --name test-nginx nginx
-curl http://YOUR_SERVER_IP:80  # Should fail/timeout
-curl http://localhost:80        # Should work
+curl --connect-timeout 5 http://YOUR_SERVER_IP:80
+curl --fail http://localhost:80
 sudo docker rm -f test-nginx
+```
 
-# Check unattended-upgrades
+Expected: the external request fails or times out, while the localhost request returns the nginx welcome page. Remove the test container even if either request produces an unexpected result.
+
+### Tailscale
+
+```bash
+sudo tailscale status
+```
+
+When Tailscale is enabled, expected: the server has a `100.x.x.x` Tailscale address and appears in the peer table. `Logged out` or `Stopped` means `sudo tailscale up` still needs to be completed. Skip this check when `tailscale_enabled` is false.
+
+### Automatic Security Updates
+
+```bash
 sudo systemctl status unattended-upgrades
 ```
+
+Expected: the unit is loaded and active. Use `sudo unattended-upgrade --dry-run --debug` if the service is inactive or reports errors.
 
 ## Tailscale Access
 
